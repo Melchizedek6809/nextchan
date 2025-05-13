@@ -1,23 +1,15 @@
 import Link from "next/link"
-
-interface Post {
-  id: number
-  board_id: string
-  parent_id: number | null
-  message: string
-  creation_time: string
-  update_time: string
-  replies?: Post[]
-}
+import type { Post as PostType } from "@/lib/types"
 
 interface PostProps {
-  post: Post
+  post: PostType
   boardId: string
   isMainPost?: boolean
   depth?: number
   inThread?: boolean
   showReplies?: boolean
   replyCount?: number
+  showAllReplies?: boolean
 }
 
 export function Post({ 
@@ -27,7 +19,8 @@ export function Post({
   depth = 0, 
   inThread = false, 
   showReplies = false,
-  replyCount = 0
+  replyCount = 0,
+  showAllReplies = false
 }: PostProps) {
   // Calculate padding based on depth, with a maximum depth
   const paddingLeft = depth > 0 ? Math.min(depth * 16, 64) : 0
@@ -52,7 +45,7 @@ export function Post({
             }
           </div>
           <div className="flex items-center gap-2">
-            {!isMainPost && !inThread && (
+            {!isMainPost && (
               <Link 
                 href={`/${boardId}/${post.id}`} 
                 className="text-xs text-muted-foreground hover:text-foreground"
@@ -61,13 +54,21 @@ export function Post({
               </Link>
             )}
             {inThread && (
-              <Link
-                href={`#post-${post.id}`}
-                className="text-xs font-mono text-muted-foreground hover:text-foreground"
-                title="Link to this post"
-              >
-                #
-              </Link>
+              <>
+                <Link
+                  href={`#post-${post.id}`}
+                  className="text-xs font-mono text-muted-foreground hover:text-foreground"
+                  title="Link to this post"
+                >
+                  #
+                </Link>
+                <Link
+                  href={`/${boardId}/${post.parent_id || post.id}?reply=${post.id}`}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Reply
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -77,15 +78,41 @@ export function Post({
       {/* Show nested replies in threads */}
       {inThread && post.replies && post.replies.length > 0 && (
         <div className="mt-2">
-          {post.replies.map(reply => (
-            <Post 
-              key={reply.id} 
-              post={reply} 
-              boardId={boardId}
-              depth={depth + 1}
-              inThread={inThread}
-            />
-          ))}
+          {showAllReplies ? (
+            // Show all replies
+            post.replies.map(reply => (
+              <Post 
+                key={reply.id} 
+                post={reply} 
+                boardId={boardId}
+                depth={depth + 1}
+                inThread={inThread}
+              />
+            ))
+          ) : (
+            // Show only the 3 most recent replies
+            <>
+              {post.replies.length > 3 && (
+                <div className="text-xs text-muted-foreground mb-2 pl-4">
+                  <Link 
+                    href={`/${boardId}/${post.id}`} 
+                    className="hover:text-foreground"
+                  >
+                    {post.replies.length} replies - Click to view all
+                  </Link>
+                </div>
+              )}
+              {post.replies.slice(-3).map(reply => (
+                <Post 
+                  key={reply.id} 
+                  post={reply} 
+                  boardId={boardId}
+                  depth={depth + 1}
+                  inThread={inThread}
+                />
+              ))}
+            </>
+          )}
         </div>
       )}
 

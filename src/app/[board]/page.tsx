@@ -10,20 +10,10 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
 import { HomeIcon } from "lucide-react"
+import type { Post as PostType, Board } from "@/lib/types"
 
 type Props = {
   params: { board: string }
-}
-
-interface Post {
-  id: number
-  board_id: string
-  parent_id: number | null
-  message: string
-  creation_time: string
-  update_time: string
-  replies?: Post[]
-  reply_count?: number
 }
 
 export default async function BoardPage(props: Props) {
@@ -31,7 +21,7 @@ export default async function BoardPage(props: Props) {
   const params = await props.params;
   const boardId = params.board
   
-  const board = get<{ id: string; name: string }>(
+  const board = get<Board>(
     'SELECT id, name FROM boards WHERE id = ?',
     [boardId]
   )
@@ -41,7 +31,7 @@ export default async function BoardPage(props: Props) {
   }
 
   // Get all top-level posts (where parent_id is null)
-  const posts = query<Post>(
+  const posts = query<PostType>(
     'SELECT * FROM posts WHERE board_id = ? AND parent_id IS NULL ORDER BY creation_time DESC',
     [board.id]
   )
@@ -55,7 +45,7 @@ export default async function BoardPage(props: Props) {
     )
 
     // Get the 3 most recent replies
-    const replies = query<Post>(
+    const replies = query<PostType>(
       'SELECT * FROM posts WHERE parent_id = ? ORDER BY creation_time DESC LIMIT 3',
       [post.id]
     )

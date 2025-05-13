@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { query } from "@/lib/db"
+import type { Board } from "@/lib/types"
 
 export function Header() {
-  const boards = query<{ id: string; name: string }>('SELECT id, name FROM boards ORDER BY id')
+  const boards = query<Board>('SELECT id, name FROM boards ORDER BY id')
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

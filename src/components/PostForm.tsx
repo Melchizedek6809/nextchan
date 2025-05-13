@@ -14,7 +14,7 @@ export function PostForm({ boardId, parentId }: PostFormProps) {
       <h2 className="text-lg font-medium mb-3">
         {isReply ? "Reply to this thread" : "Create a new post"}
       </h2>
-      <form action={isReply ? "/api/reply" : "/api/post"} method="post">
+      <form action="/api/posts" method="post">
         <input type="hidden" name="boardId" value={boardId} />
         {isReply && <input type="hidden" name="parentId" value={parentId.toString()} />}
         <Textarea 
