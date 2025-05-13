@@ -1,8 +1,15 @@
 import { get, query } from "@/lib/db"
 import { notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
+import { Post } from "@/components/Post"
+import { PostForm } from "@/components/PostForm"
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"
+import { HomeIcon } from "lucide-react"
 
 type Props = {
   params: { 
@@ -80,101 +87,41 @@ export default async function PostPage(props: Props) {
   // Get the main post with all its nested replies
   const postWithReplies = getPostWithReplies(postId)
 
+  // Get a preview of the post content for the breadcrumb
+  const postPreview = post.message.length > 30 
+    ? post.message.substring(0, 30) + '...' 
+    : post.message;
+
   return (
     <div className="container mx-auto max-w-[1200px] py-6">
-      <div className="mb-6 flex items-center gap-2">
-        <Link href={`/${board.id}`} className="text-sm text-muted-foreground hover:text-foreground">
-          ← Back to /{board.id}/
-        </Link>
-        <span className="text-muted-foreground mx-2">|</span>
-        <h1 className="text-xl font-semibold">
-          Thread #{post.id}
-        </h1>
+      <div className="mb-6">
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">
+              <HomeIcon className="size-3.5 mr-1" />
+              Home
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${board.id}`}>
+              /{board.id}/ - {board.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem isCurrent>
+            <BreadcrumbLink isCurrent>
+              Thread #{post.id} - {postPreview}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </Breadcrumb>
       </div>
 
-      <PostCard post={postWithReplies} boardId={board.id} isMainPost />
+      <Post post={postWithReplies} boardId={board.id} isMainPost inThread />
 
-      <div className="mt-8 bg-card p-4 rounded-md border">
-        <h2 className="text-lg font-medium mb-3">Reply to this thread</h2>
-        <form action="/api/reply" method="post">
-          <input type="hidden" name="boardId" value={board.id} />
-          <input type="hidden" name="parentId" value={post.id.toString()} />
-          <Textarea 
-            name="message"
-            placeholder="What's your reply?"
-            className="min-h-[120px] mb-3"
-            required
-          />
-          <div className="flex justify-end">
-            <Button type="submit">
-              Reply
-            </Button>
-          </div>
-        </form>
+      <div className="mt-8">
+        <PostForm boardId={board.id} parentId={post.id} />
       </div>
-    </div>
-  )
-}
-
-interface PostCardProps {
-  post: Post
-  boardId: string
-  isMainPost?: boolean
-  depth?: number
-}
-
-function PostCard({ post, boardId, isMainPost = false, depth = 0 }: PostCardProps) {
-  // Calculate padding based on depth, with a maximum depth
-  const paddingLeft = depth > 0 ? Math.min(depth * 16, 64) : 0
-  
-  return (
-    <div className="mb-4" style={{ paddingLeft: isMainPost ? 0 : paddingLeft }} id={`post-${post.id}`}>
-      <div className={`bg-card p-4 rounded-md border ${isMainPost ? 'border-primary/50' : ''}`}>
-        <div className="flex justify-between items-start mb-2">
-          <div className="text-sm text-muted-foreground">
-            <Link 
-              href={`#post-${post.id}`}
-              className="font-medium hover:underline"
-            >
-              No.{post.id}
-            </Link> • {new Date(post.creation_time).toLocaleString()}
-            {post.creation_time !== post.update_time && 
-              <span className="ml-2 text-xs">(edited)</span>
-            }
-          </div>
-          <div className="flex items-center gap-2">
-            {!isMainPost && (
-              <Link 
-                href={`/${boardId}/${post.id}`} 
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                View Thread
-              </Link>
-            )}
-            <Link
-              href={`#post-${post.id}`}
-              className="text-xs font-mono text-muted-foreground hover:text-foreground"
-              title="Link to this post"
-            >
-              #
-            </Link>
-          </div>
-        </div>
-        <div className="whitespace-pre-wrap break-words">{post.message}</div>
-      </div>
-
-      {post.replies && post.replies.length > 0 && (
-        <div className="mt-2">
-          {post.replies.map(reply => (
-            <PostCard 
-              key={reply.id} 
-              post={reply} 
-              boardId={boardId}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
     </div>
   )
 } 

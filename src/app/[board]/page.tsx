@@ -1,8 +1,15 @@
 import { get, query } from "@/lib/db"
 import { notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
+import { Post } from "@/components/Post"
+import { PostForm } from "@/components/PostForm"
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"
+import { HomeIcon } from "lucide-react"
 
 type Props = {
   params: { board: string }
@@ -15,6 +22,8 @@ interface Post {
   message: string
   creation_time: string
   update_time: string
+  replies?: Post[]
+  reply_count?: number
 }
 
 export default async function BoardPage(props: Props) {
@@ -37,56 +46,68 @@ export default async function BoardPage(props: Props) {
     [board.id]
   )
 
+  // For each post, get the 3 most recent replies and total reply count
+  const postsWithReplies = posts.map(post => {
+    // Get total reply count
+    const replyCount = get<{ count: number }>(
+      'SELECT COUNT(*) as count FROM posts WHERE parent_id = ?',
+      [post.id]
+    )
+
+    // Get the 3 most recent replies
+    const replies = query<Post>(
+      'SELECT * FROM posts WHERE parent_id = ? ORDER BY creation_time DESC LIMIT 3',
+      [post.id]
+    )
+
+    return {
+      ...post,
+      replies: replies.reverse(), // Show oldest first (like in a conversation)
+      reply_count: replyCount ? replyCount.count : 0
+    }
+  })
+
   return (
     <div className="container mx-auto max-w-[1200px] py-6">
+      <div className="mb-6">
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">
+              <HomeIcon className="size-3.5 mr-1" />
+              Home
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem isCurrent>
+            <BreadcrumbLink isCurrent>
+              /{board.id}/ - {board.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </Breadcrumb>
+      </div>
+      
       <h1 className="text-2xl font-bold mb-6">
         /{board.id}/ - {board.name}
       </h1>
       
-      <div className="mb-8 bg-card p-4 rounded-md border">
-        <h2 className="text-lg font-medium mb-3">Create a new post</h2>
-        <form action="/api/post" method="post">
-          <input type="hidden" name="boardId" value={board.id} />
-          <Textarea 
-            name="message"
-            placeholder="What's on your mind?"
-            className="min-h-[120px] mb-3"
-            required
-          />
-          <div className="flex justify-end">
-            <Button type="submit">
-              Post
-            </Button>
-          </div>
-        </form>
+      <div className="mb-8">
+        <PostForm boardId={board.id} />
       </div>
 
       <div className="space-y-6">
-        {posts.length === 0 ? (
+        {postsWithReplies.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No posts yet. Be the first to post!
           </div>
         ) : (
-          posts.map((post) => (
-            <div key={post.id} className="bg-card p-4 rounded-md border">
-              <div className="flex justify-between items-start mb-2">
-                <div className="text-sm text-muted-foreground">
-                  <Link 
-                    href={`/${board.id}/${post.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    No.{post.id}
-                  </Link> • {new Date(post.creation_time).toLocaleString()}
-                </div>
-                <Link 
-                  href={`/${board.id}/${post.id}`} 
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  View thread
-                </Link>
-              </div>
-              <div className="whitespace-pre-wrap break-words">{post.message}</div>
-            </div>
+          postsWithReplies.map((post) => (
+            <Post 
+              key={post.id} 
+              post={post} 
+              boardId={board.id} 
+              showReplies={true} 
+              replyCount={post.reply_count}
+            />
           ))
         )}
       </div>
