@@ -1,8 +1,7 @@
 import { get, query, getFilesForPost } from "@/lib/db"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
-import { Post } from "@/components/Post"
-import { PostForm } from "@/components/PostForm"
+import Image from "next/image"
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -10,7 +9,7 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, HomeIcon, List, Grid } from "lucide-react"
+import { Eye, HomeIcon, MessageSquare, List, Grid, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Post as PostType, Board } from "@/lib/types"
 
 type Props = {
@@ -18,11 +17,10 @@ type Props = {
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
-// Number of posts to show per page
-const POSTS_PER_PAGE = 3;
+// Number of threads to show per page
+const THREADS_PER_PAGE = 12;
 
-export default async function BoardPage(props: Props) {
-  // Use object destructuring in the function body instead of parameters
+export default async function CatalogPage(props: Props) {
   const params = await props.params;
   const searchParams = props.searchParams || {};
   
@@ -38,7 +36,7 @@ export default async function BoardPage(props: Props) {
   }
   
   // Calculate offset for SQL query
-  const offset = (currentPage - 1) * POSTS_PER_PAGE;
+  const offset = (currentPage - 1) * THREADS_PER_PAGE;
   
   const board = get<Board>(
     'SELECT id, name FROM boards WHERE id = ?',
@@ -49,65 +47,57 @@ export default async function BoardPage(props: Props) {
     notFound()
   }
 
-  // Get total number of top-level posts for pagination
-  const totalPostsResult = get<{ count: number }>(
+  // Get total number of threads for pagination
+  const totalThreadsResult = get<{ count: number }>(
     'SELECT COUNT(*) as count FROM posts WHERE board_id = ? AND parent_id IS NULL',
     [board.id]
   );
   
-  const totalPosts = totalPostsResult?.count || 0;
-  const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
+  const totalThreads = totalThreadsResult?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(totalThreads / THREADS_PER_PAGE));
   
   // If user tries to access a page beyond the maximum, redirect to the last valid page
-  // But only if there are actual posts (avoid redirect if board is empty)
-  if (totalPosts > 0 && currentPage > totalPages) {
-    redirect(`/${boardId}?page=${totalPages}`);
+  if (totalThreads > 0 && currentPage > totalPages) {
+    redirect(`/${boardId}/catalog?page=${totalPages}`);
   }
 
-  // Get paginated top-level posts
-  const posts = query<PostType>(
+  // Get paginated threads
+  const threads = query<PostType>(
     'SELECT * FROM posts WHERE board_id = ? AND parent_id IS NULL ORDER BY creation_time DESC LIMIT ? OFFSET ?',
-    [board.id, POSTS_PER_PAGE, offset]
+    [board.id, THREADS_PER_PAGE, offset]
   )
 
-  // For each post, get the 3 most recent replies and total reply count
-  const postsWithReplies = posts.map(post => {
-    // Get total reply count
+  // Get reply counts and files for each thread
+  const threadsWithFiles = threads.map(thread => {
+    // Get reply count
     const replyCount = get<{ count: number }>(
       'SELECT COUNT(*) as count FROM posts WHERE parent_id = ?',
-      [post.id]
-    )
+      [thread.id]
+    );
 
-    // Get the 3 most recent replies
-    const replies = query<PostType>(
-      'SELECT * FROM posts WHERE parent_id = ? ORDER BY creation_time DESC LIMIT 3',
-      [post.id]
-    )
-
-    // Get files for this post
-    const files = getFilesForPost(post.id)
+    // Get files for this thread
+    const files = getFilesForPost(thread.id);
     
-    // Get files for each reply
-    const repliesWithFiles = replies.map(reply => ({
-      ...reply,
-      files: getFilesForPost(reply.id)
-    }))
-
     return {
-      ...post,
-      files,
-      replies: repliesWithFiles.reverse(), // Show oldest first (like in a conversation)
-      reply_count: replyCount ? replyCount.count : 0
-    }
-  })
+      ...thread,
+      reply_count: replyCount ? replyCount.count : 0,
+      files
+    };
+  });
+
+  // Function to truncate text to a specific length
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
+  };
 
   // Generate pagination URLs
   const createPageUrl = (page: number) => {
-    return `/${boardId}?page=${page}`;
+    return `/${boardId}/catalog?page=${page}`;
   };
 
   return (
-    <div className="container mx-auto max-w-[1200px] py-6 px-4 sm:px-6">
+    <div className="container mx-auto max-w-[1400px] py-6 px-4 sm:px-6">
       <div className="mb-6">
         <Breadcrumb>
           <BreadcrumbItem>
@@ -120,6 +110,12 @@ export default async function BoardPage(props: Props) {
           <BreadcrumbItem>
             <BreadcrumbLink href={`/${board.id}`}>
               /{board.id}/ - {board.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${board.id}/catalog`}>
+              Catalog
             </BreadcrumbLink>
           </BreadcrumbItem>
           {currentPage > 1 && (
@@ -137,48 +133,97 @@ export default async function BoardPage(props: Props) {
       
       <div className="flex flex-wrap items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">
-          /{board.id}/ - {board.name}
+          /{board.id}/ - {board.name} - Catalog
         </h1>
         
         <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-          <Button size="sm" variant="default" className="pointer-events-none">
-            <List className="mr-1 size-4" />
-            Thread View
-          </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link href={`/${board.id}/catalog`} className="flex items-center">
-              <Grid className="mr-1 size-4" />
-              Catalog
+            <Link href={`/${board.id}`} className="flex items-center">
+              <List className="mr-1 size-4" />
+              Thread View
             </Link>
+          </Button>
+          <Button size="sm" variant="default" className="pointer-events-none">
+            <Grid className="mr-1 size-4" />
+            Catalog
           </Button>
         </div>
       </div>
-      
-      <div className="mb-8">
-        <PostForm boardId={board.id} />
-      </div>
 
-      <div className="space-y-6">
-        {postsWithReplies.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No posts yet. Be the first to post!
-          </div>
-        ) : (
-          postsWithReplies.map((post) => (
-            <Post 
-              key={post.id} 
-              post={post} 
-              boardId={board.id} 
-              showReplies={true} 
-              replyCount={post.reply_count}
-            />
-          ))
-        )}
-      </div>
+      {threadsWithFiles.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          No threads yet. Be the first to post!
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {threadsWithFiles.map(thread => (
+            <Link 
+              href={`/${board.id}/${thread.id}`}
+              key={thread.id}
+              className="block group"
+            >
+              <div className="bg-card border rounded-md overflow-hidden transition-all hover:shadow-md hover:border-primary/50">
+                <div className="relative h-40 w-full bg-muted/50">
+                  {thread.files && thread.files.length > 0 ? (
+                    <Image
+                      src={`/api/files/${thread.files[0].id}`}
+                      alt="Thread thumbnail"
+                      fill
+                      className="object-cover object-center"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                      No image
+                    </div>
+                  )}
+                  {thread.files && thread.files.length > 1 && (
+                    <div className="absolute top-2 right-2 bg-background/80 rounded px-1.5 py-0.5 text-xs">
+                      +{thread.files.length - 1} files
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-3">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground mb-1.5">
+                    <span>No.{thread.id}</span>
+                    <span>{new Date(thread.creation_time).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <p className="text-sm line-clamp-3 mb-2">
+                    {truncateText(thread.message, 120)}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center text-xs text-muted-foreground">
+                        <MessageSquare className="mr-1 size-3.5" />
+                        {thread.reply_count}
+                      </span>
+                      <span className="inline-flex items-center text-xs text-muted-foreground">
+                        {thread.files?.length || 0} {thread.files?.length === 1 ? 'file' : 'files'}
+                      </span>
+                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Eye className="mr-1 size-3.5" />
+                      <span className="text-xs">View</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
       
       {/* Pagination UI */}
       {totalPages > 1 && (
-        <nav aria-label="Board pagination" className="mt-8">
+        <nav aria-label="Catalog pagination" className="mt-8">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {/* First page button - only show if not near the beginning */}
             {currentPage > 3 && totalPages > 5 && (
@@ -303,11 +348,11 @@ export default async function BoardPage(props: Props) {
         </nav>
       )}
       
-      {totalPosts > 0 && (
+      {totalThreads > 0 && (
         <div className="mt-4 text-center text-sm text-muted-foreground">
-          Showing page {currentPage} of {totalPages} ({totalPosts} threads total)
+          Showing page {currentPage} of {totalPages} ({totalThreads} threads total)
         </div>
       )}
     </div>
-  )
+  );
 } 
