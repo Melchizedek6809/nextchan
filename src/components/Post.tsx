@@ -1,5 +1,6 @@
 import Link from "next/link"
-import type { Post as PostType } from "@/lib/types"
+import Image from "next/image"
+import type { Post as PostType, FileMetadata } from "@/lib/types"
 
 interface PostProps {
   post: PostType
@@ -72,6 +73,16 @@ export function Post({
             )}
           </div>
         </div>
+        
+        {/* Display attached files if any */}
+        {post.files && post.files.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {post.files.map((file) => (
+              <FileAttachment key={file.id} file={file} boardId={boardId} />
+            ))}
+          </div>
+        )}
+        
         <div className="whitespace-pre-wrap break-words">{post.message}</div>
       </div>
 
@@ -136,6 +147,24 @@ export function Post({
                 <span>•</span>
                 <span>{new Date(reply.creation_time).toLocaleString()}</span>
               </div>
+              
+              {/* Display file thumbnails for replies */}
+              {reply.files && reply.files.length > 0 && (
+                <div className="mb-1 flex flex-wrap gap-1">
+                  {reply.files.map((file) => (
+                    <Link 
+                      key={file.id} 
+                      href={`/${boardId}/${reply.id}`}
+                      className="inline-block"
+                    >
+                      <div className="bg-muted w-8 h-8 rounded overflow-hidden flex items-center justify-center text-xs">
+                        {file.extension}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              
               <div className="text-sm whitespace-pre-wrap break-words">
                 {reply.message.length > 120 
                   ? `${reply.message.substring(0, 120)}...` 
@@ -156,4 +185,51 @@ export function Post({
       )}
     </div>
   )
+}
+
+// File attachment component
+interface FileAttachmentProps {
+  file: FileMetadata
+  boardId: string
+}
+
+function FileAttachment({ file, boardId }: FileAttachmentProps) {
+  // Determine file type
+  const isImage = file.mime.startsWith('image/');
+  
+  return (
+    <Link 
+      href={`/api/files/${file.id}`} 
+      target="_blank"
+      className="block"
+    >
+      <div className="bg-muted/50 border rounded overflow-hidden hover:bg-muted transition-colors">
+        {isImage ? (
+          <div className="w-32 h-32 relative">
+            <Image
+              src={`/api/files/${file.id}`}
+              alt={file.name}
+              fill
+              sizes="128px"
+              className="object-cover"
+              unoptimized={true}
+            />
+          </div>
+        ) : (
+          <div className="w-32 h-32 flex flex-col items-center justify-center p-2">
+            <div className="text-xl mb-1">📄</div>
+            <div className="text-xs text-center break-all">
+              {file.name}
+            </div>
+            <div className="text-xs uppercase font-mono mt-1 text-muted-foreground">
+              {file.extension}
+            </div>
+          </div>
+        )}
+        <div className="px-2 py-1 text-xs truncate border-t">
+          {file.name}
+        </div>
+      </div>
+    </Link>
+  );
 } 

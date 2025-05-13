@@ -1,6 +1,7 @@
-import { execute } from "@/lib/db"
+import { execute, saveFile } from "@/lib/db"
 import { NextRequest, NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
+import path from "path"
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,18 @@ export async function POST(request: NextRequest) {
 
     // Get optional parentId (if it's a reply)
     const parentId = formData.get("parentId") as string | null
+    
+    // Get file from form data
+    const file = formData.get("file") as File | null
+    
+    // Enforce file requirement for new threads
+    if (!parentId && (!file || file.size === 0)) {
+      return NextResponse.json(
+        { error: "New threads require an attached file" }, 
+        { status: 400 }
+      )
+    }
+    
     let result;
 
     // Insert into database based on whether it's a reply or new post
@@ -36,6 +49,27 @@ export async function POST(request: NextRequest) {
         'INSERT INTO posts (board_id, message) VALUES (?, ?)',
         [boardId, message.trim()]
       )
+    }
+    
+    // Process file upload if present
+    if (file && file.size > 0) {
+      const postId = Number(result.lastInsertRowid);
+      
+      // Get file details
+      const fileName = file.name;
+      const fileExtension = path.extname(fileName).substring(1);
+      const fileContent = Buffer.from(await file.arrayBuffer());
+      
+      // Save the file to the database
+      saveFile({
+        name: fileName,
+        extension: fileExtension,
+        mime: file.type,
+        content: fileContent,
+        index_num: 0, // First (and only) file for this post
+        board_id: boardId,
+        post_id: postId
+      });
     }
     
     // Always revalidate the board page

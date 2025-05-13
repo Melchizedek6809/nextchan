@@ -1,4 +1,18 @@
 /**
+ * File metadata interface
+ */
+export interface FileMetadata {
+  id: number
+  creation_time: string
+  name: string
+  extension: string
+  mime: string
+  index_num: number
+  board_id: string
+  post_id: number
+}
+
+/**
  * Post interface representing a post or reply in the application
  */
 export interface Post {
@@ -10,6 +24,7 @@ export interface Post {
   update_time: string
   replies?: Post[]
   reply_count?: number
+  files?: FileMetadata[]
 }
 
 /**

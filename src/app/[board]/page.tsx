@@ -1,4 +1,4 @@
-import { get, query } from "@/lib/db"
+import { get, query, getFilesForPost } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Post } from "@/components/Post"
@@ -50,15 +50,25 @@ export default async function BoardPage(props: Props) {
       [post.id]
     )
 
+    // Get files for this post
+    const files = getFilesForPost(post.id)
+    
+    // Get files for each reply
+    const repliesWithFiles = replies.map(reply => ({
+      ...reply,
+      files: getFilesForPost(reply.id)
+    }))
+
     return {
       ...post,
-      replies: replies.reverse(), // Show oldest first (like in a conversation)
+      files,
+      replies: repliesWithFiles.reverse(), // Show oldest first (like in a conversation)
       reply_count: replyCount ? replyCount.count : 0
     }
   })
 
   return (
-    <div className="container mx-auto max-w-[1200px] py-6">
+    <div className="container mx-auto max-w-[1200px] py-6 px-4 sm:px-6">
       <div className="mb-6">
         <Breadcrumb>
           <BreadcrumbItem>

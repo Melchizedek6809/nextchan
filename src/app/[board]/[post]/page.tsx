@@ -1,4 +1,4 @@
-import { get, query } from "@/lib/db"
+import { get, query, getFilesForPost } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import React from "react"
@@ -103,8 +103,12 @@ export default async function PostPage(props: Props) {
     // For each reply, recursively get its replies
     const repliesWithChildren = replies.map(reply => getPostWithReplies(reply.id))
     
+    // Get files for this post
+    const files = getFilesForPost(parentId)
+    
     return {
       ...parentPost,
+      files,
       replies: repliesWithChildren
     }
   }
@@ -132,7 +136,7 @@ export default async function PostPage(props: Props) {
   }
 
   return (
-    <div className="container mx-auto max-w-[1200px] py-6">
+    <div className="container mx-auto max-w-[1200px] py-6 px-4 sm:px-6">
       <div className="mb-6">
         <Breadcrumb>
           <BreadcrumbItem>

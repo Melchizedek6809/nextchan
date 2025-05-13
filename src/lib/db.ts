@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 import fs from 'fs'
+import type { FileMetadata as FileMetadataType } from './types'
 
 // Ensure the data directory exists
 const dataDir = path.join(process.cwd(), 'data')
@@ -63,6 +64,85 @@ export function get<T = any>(sql: string, params: any[] = []): T | undefined {
   }
 }
 
+// Internal file-related interfaces
+interface FileData {
+  name: string
+  extension: string
+  mime: string
+  thumbnail?: Buffer
+  content: Buffer
+  index_num: number
+  board_id: string
+  post_id: number
+}
+
+// Helper function to save a file to the database
+export function saveFile(file: FileData): number {
+  try {
+    const result = execute(
+      `INSERT INTO files (
+        name, extension, mime, thumbnail, content, index_num, board_id, post_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        file.name,
+        file.extension,
+        file.mime,
+        file.thumbnail || null,
+        file.content,
+        file.index_num,
+        file.board_id,
+        file.post_id
+      ]
+    )
+    return Number(result.lastInsertRowid)
+  } catch (error) {
+    console.error('Error saving file:', error)
+    throw error
+  }
+}
+
+// Helper function to get files for a post
+export function getFilesForPost(postId: number): FileMetadataType[] {
+  try {
+    return query<FileMetadataType>(
+      `SELECT id, creation_time, name, extension, mime, index_num, board_id, post_id 
+       FROM files 
+       WHERE post_id = ? 
+       ORDER BY index_num ASC`,
+      [postId]
+    )
+  } catch (error) {
+    console.error('Error getting files for post:', error)
+    throw error
+  }
+}
+
+// Helper function to get a specific file with content
+export function getFile(fileId: number): (FileMetadataType & { thumbnail?: Buffer, content: Buffer }) | undefined {
+  try {
+    return get<FileMetadataType & { thumbnail?: Buffer, content: Buffer }>(
+      `SELECT id, creation_time, name, extension, mime, thumbnail, content, index_num, board_id, post_id 
+       FROM files 
+       WHERE id = ?`,
+      [fileId]
+    )
+  } catch (error) {
+    console.error('Error getting file:', error)
+    throw error
+  }
+}
+
+// Helper function to delete a file
+export function deleteFile(fileId: number): boolean {
+  try {
+    const result = execute('DELETE FROM files WHERE id = ?', [fileId])
+    return result.changes > 0
+  } catch (error) {
+    console.error('Error deleting file:', error)
+    throw error
+  }
+}
+
 // Helper function to ensure default boards exist
 function ensureDefaultBoards() {
   const defaultBoards = [
@@ -105,6 +185,26 @@ export function initTables() {
         UPDATE posts SET update_time = CURRENT_TIMESTAMP
         WHERE id = NEW.id;
       END;
+
+      -- Create a table for storing file attachments
+      CREATE TABLE IF NOT EXISTS files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        creation_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+        name TEXT NOT NULL,
+        extension TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        thumbnail BLOB,
+        content BLOB NOT NULL,
+        index_num INTEGER NOT NULL,
+        board_id TEXT NOT NULL,
+        post_id INTEGER NOT NULL,
+        FOREIGN KEY (board_id) REFERENCES boards(id),
+        FOREIGN KEY (post_id) REFERENCES posts(id)
+      );
+
+      -- Create indexes for faster file retrieval
+      CREATE INDEX IF NOT EXISTS idx_files_post_id ON files(post_id);
+      CREATE INDEX IF NOT EXISTS idx_files_board_id ON files(board_id);
     `)
     console.log('Database tables initialized successfully')
 
