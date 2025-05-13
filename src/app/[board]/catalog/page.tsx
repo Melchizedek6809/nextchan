@@ -2,14 +2,9 @@ import { get, query, getFilesForPost } from "@/lib/db"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbSeparator 
-} from "@/components/ui/breadcrumb"
+import { BoardLayout } from "@/components/BoardLayout"
 import { Button } from "@/components/ui/button"
-import { Eye, HomeIcon, MessageSquare, List, Grid, ChevronLeft, ChevronRight } from "lucide-react"
+import { Eye, MessageSquare, FileText, Clock, ImageIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Post as PostType, Board } from "@/lib/types"
 
 type Props = {
@@ -95,124 +90,159 @@ export default async function CatalogPage(props: Props) {
   const createPageUrl = (page: number) => {
     return `/${boardId}/catalog?page=${page}`;
   };
+  
+  // Get board statistics
+  const totalPosts = get<{ count: number }>(
+    'SELECT COUNT(*) as count FROM posts WHERE board_id = ?',
+    [board.id]
+  )?.count || 0;
+  
+  const totalFiles = get<{ count: number }>(
+    'SELECT COUNT(*) as count FROM files WHERE board_id = ?',
+    [board.id]
+  )?.count || 0;
 
   return (
-    <div className="container mx-auto max-w-[1400px] py-6 px-4 sm:px-6">
-      <div className="mb-6">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">
-              <HomeIcon className="size-3.5 mr-1" />
-              Home
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/${board.id}`}>
-              /{board.id}/ - {board.name}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/${board.id}/catalog`}>
-              Catalog
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {currentPage > 1 && (
-            <>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem isCurrent>
-                <BreadcrumbLink isCurrent>
-                  Page {currentPage}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </>
-          )}
-        </Breadcrumb>
-      </div>
-      
-      <div className="flex flex-wrap items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">
-          /{board.id}/ - {board.name} - Catalog
-        </h1>
-        
-        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/${board.id}`} className="flex items-center">
-              <List className="mr-1 size-4" />
-              Thread View
-            </Link>
-          </Button>
-          <Button size="sm" variant="default" className="pointer-events-none">
-            <Grid className="mr-1 size-4" />
-            Catalog
-          </Button>
+    <BoardLayout
+      board={board}
+      currentView="catalog"
+      pageNumber={currentPage > 1 ? currentPage : undefined}
+      breadcrumbItems={[
+        {
+          label: "Catalog",
+          href: `/${board.id}/catalog`,
+          isCurrent: currentPage === 1
+        },
+        ...(currentPage > 1 ? [{
+          label: `Page ${currentPage}`,
+          isCurrent: true
+        }] : [])
+      ]}
+    >
+      {/* Header with stats */}
+      <div className="mb-8 bg-card border rounded-lg p-4 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">/{board.id}/ - {board.name} - Catalog</h2>
+            <p className="text-muted-foreground text-sm">
+              Viewing all threads in a grid layout. 
+              <Link href={`/${board.id}`} className="ml-1 text-primary hover:underline">
+                Switch to thread view
+              </Link>
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-sm">
+                <MessageSquare className="size-4 text-primary" />
+                <span><strong>{totalThreads}</strong> threads</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm">
+                <FileText className="size-4 text-blue-500" />
+                <span><strong>{totalPosts - totalThreads}</strong> replies</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm">
+                <ImageIcon className="size-4 text-green-500" />
+                <span><strong>{totalFiles}</strong> files</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {threadsWithFiles.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          No threads yet. Be the first to post!
+        <div className="text-center py-16 bg-card/50 rounded-lg border border-dashed">
+          <div className="flex flex-col items-center">
+            <ImageIcon className="size-10 text-muted-foreground/40 mb-3" />
+            <h3 className="text-lg font-medium mb-1">No Threads Yet</h3>
+            <p className="text-muted-foreground max-w-md mx-auto mb-4">
+              This board doesn't have any threads yet. Visit the thread view to create a new thread.
+            </p>
+            <Button asChild>
+              <Link href={`/${board.id}`}>
+                Go to thread view
+              </Link>
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {threadsWithFiles.map(thread => (
             <Link 
               href={`/${board.id}/${thread.id}`}
               key={thread.id}
-              className="block group"
+              className="group relative"
             >
-              <div className="bg-card border rounded-md overflow-hidden transition-all hover:shadow-md hover:border-primary/50">
-                <div className="relative h-40 w-full bg-muted/50">
+              <div className="bg-card border rounded-lg overflow-hidden transition-all hover:shadow-md hover:border-primary/40 flex flex-col h-full">
+                <div className="relative h-48 w-full bg-muted/50 overflow-hidden">
                   {thread.files && thread.files.length > 0 ? (
-                    <Image
-                      src={`/api/files/${thread.files[0].id}`}
-                      alt="Thread thumbnail"
-                      fill
-                      className="object-cover object-center"
-                      unoptimized
-                    />
+                    <>
+                      <Image
+                        src={`/api/files/${thread.files[0].id}`}
+                        alt="Thread thumbnail"
+                        fill
+                        className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                      No image
+                    <div className="absolute inset-0 flex items-center justify-center flex-col text-muted-foreground/70 bg-muted/30">
+                      <ImageIcon className="size-10 mb-2 opacity-60" />
+                      <span className="text-sm">No image</span>
                     </div>
                   )}
-                  {thread.files && thread.files.length > 1 && (
-                    <div className="absolute top-2 right-2 bg-background/80 rounded px-1.5 py-0.5 text-xs">
-                      +{thread.files.length - 1} files
+                  
+                  {/* Thread stats badges */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1">
+                    <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">
+                      <MessageSquare className="size-3 text-white" />
+                      {thread.reply_count}
                     </div>
-                  )}
-                </div>
-                
-                <div className="p-3">
-                  <div className="flex justify-between items-center text-xs text-muted-foreground mb-1.5">
-                    <span>No.{thread.id}</span>
-                    <span>{new Date(thread.creation_time).toLocaleDateString()}</span>
+                    
+                    {thread.files && thread.files.length > 0 && (
+                      <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">
+                        <ImageIcon className="size-3 text-white" />
+                        {thread.files.length}
+                      </div>
+                    )}
                   </div>
                   
-                  <p className="text-sm line-clamp-3 mb-2">
+                  {/* View button that appears on hover */}
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <Eye className="size-3" />
+                      View thread
+                    </div>
+                  </div>
+                  
+                  {/* Post number and date */}
+                  <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-gradient-to-t from-black/80 to-transparent text-xs text-white flex justify-between items-center">
+                    <span className="font-medium">#{thread.id}</span>
+                    <span>{new Date(thread.creation_time).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                
+                <div className="p-3 flex-1 flex flex-col">
+                  <p className="text-sm line-clamp-3 flex-1">
                     {truncateText(thread.message, 120)}
                   </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex items-center text-xs text-muted-foreground">
-                        <MessageSquare className="mr-1 size-3.5" />
-                        {thread.reply_count}
-                      </span>
-                      <span className="inline-flex items-center text-xs text-muted-foreground">
-                        {thread.files?.length || 0} {thread.files?.length === 1 ? 'file' : 'files'}
-                      </span>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="size-3" />
+                      <time dateTime={thread.creation_time}>
+                        {new Date(thread.creation_time).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </time>
                     </div>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Eye className="mr-1 size-3.5" />
-                      <span className="text-xs">View</span>
-                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -221,9 +251,9 @@ export default async function CatalogPage(props: Props) {
         </div>
       )}
       
-      {/* Pagination UI */}
+      {/* Pagination UI - Only show if there are multiple pages */}
       {totalPages > 1 && (
-        <nav aria-label="Catalog pagination" className="mt-8">
+        <nav aria-label="Catalog pagination" className="mt-10">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {/* First page button - only show if not near the beginning */}
             {currentPage > 3 && totalPages > 5 && (
@@ -248,83 +278,72 @@ export default async function CatalogPage(props: Props) {
               disabled={currentPage === 1}
               asChild={currentPage !== 1}
               aria-label="Go to previous page"
-              aria-disabled={currentPage === 1}
             >
-              {currentPage === 1 ? (
-                <span className="flex items-center opacity-50">
-                  <ChevronLeft className="size-4 mr-1" />
-                  <span className="sm:block hidden">Previous</span>
-                </span>
-              ) : (
-                <Link href={createPageUrl(currentPage - 1)} className="flex items-center">
-                  <ChevronLeft className="size-4 mr-1" />
-                  <span className="sm:block hidden">Previous</span>
+              {currentPage !== 1 ? (
+                <Link href={createPageUrl(currentPage - 1)}>
+                  <ChevronLeft className="size-4" />
                 </Link>
+              ) : (
+                <span>
+                  <ChevronLeft className="size-4" />
+                </span>
               )}
             </Button>
             
-            <div className="flex items-center gap-1 mx-1 sm:mx-2" role="group" aria-label="Page navigation">
-              {/* Page numbers */}
-              {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                // Logic to show pages around current page
-                let pageNumber: number;
-                
-                if (totalPages <= 5) {
-                  // If 5 or fewer pages, show all pages
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  // If at start, show first 5 pages
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  // If at end, show last 5 pages
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  // Show 2 pages before and after current
-                  pageNumber = currentPage - 2 + i;
-                }
-                
-                const isCurrentPage = pageNumber === currentPage;
-                
-                return (
-                  <Button 
-                    key={pageNumber} 
-                    size="sm"
-                    variant={isCurrentPage ? "default" : "outline"}
-                    className={`w-9 ${isCurrentPage ? "pointer-events-none" : ""}`}
-                    asChild={!isCurrentPage}
-                    aria-label={`Page ${pageNumber}`}
-                    aria-current={isCurrentPage ? "page" : undefined}
-                  >
-                    {isCurrentPage ? (
-                      <span>{pageNumber}</span>
-                    ) : (
-                      <Link href={createPageUrl(pageNumber)}>
-                        {pageNumber}
-                      </Link>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              // Calculate what page numbers to show
+              let pageNum;
+              if (totalPages <= 5) {
+                // If we have 5 or fewer pages, show all of them
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                // If we're near the beginning, show 1-5
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                // If we're near the end, show the last 5 pages
+                pageNum = totalPages - 4 + i;
+              } else {
+                // Otherwise show 2 before and 2 after current page
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === currentPage ? "default" : "outline"}
+                  size="sm"
+                  asChild={pageNum !== currentPage}
+                  aria-current={pageNum === currentPage ? "page" : undefined}
+                  className="w-9"
+                >
+                  {pageNum !== currentPage ? (
+                    <Link href={createPageUrl(pageNum)}>
+                      {pageNum}
+                    </Link>
+                  ) : (
+                    <span>{pageNum}</span>
+                  )}
+                </Button>
+              );
+            })}
             
+            {/* Next page button */}
             <Button 
               variant="outline" 
               size="sm" 
               disabled={currentPage === totalPages}
               asChild={currentPage !== totalPages}
               aria-label="Go to next page"
-              aria-disabled={currentPage === totalPages}
             >
-              {currentPage === totalPages ? (
-                <span className="flex items-center opacity-50">
-                  <span className="sm:block hidden">Next</span>
-                  <ChevronRight className="size-4 ml-1" />
-                </span>
-              ) : (
-                <Link href={createPageUrl(currentPage + 1)} className="flex items-center">
-                  <span className="sm:block hidden">Next</span>
-                  <ChevronRight className="size-4 ml-1" />
+              {currentPage !== totalPages ? (
+                <Link href={createPageUrl(currentPage + 1)}>
+                  <ChevronRight className="size-4" />
                 </Link>
+              ) : (
+                <span>
+                  <ChevronRight className="size-4" />
+                </span>
               )}
             </Button>
             
@@ -332,10 +351,10 @@ export default async function CatalogPage(props: Props) {
             {currentPage < totalPages - 2 && totalPages > 5 && (
               <Button 
                 variant="outline" 
-                size="sm"
+                size="sm" 
                 asChild
                 className="hidden sm:flex"
-                aria-label={`Go to last page, page ${totalPages}`}
+                aria-label="Go to last page"
               >
                 <Link href={createPageUrl(totalPages)} className="flex items-center">
                   <span className="mr-1">{totalPages}</span>
@@ -345,14 +364,12 @@ export default async function CatalogPage(props: Props) {
               </Button>
             )}
           </div>
+          
+          <div className="text-center text-xs text-muted-foreground mt-3">
+            Page {currentPage} of {totalPages} • Showing {Math.min(THREADS_PER_PAGE, threadsWithFiles.length)} of {totalThreads} threads
+          </div>
         </nav>
       )}
-      
-      {totalThreads > 0 && (
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          Showing page {currentPage} of {totalPages} ({totalThreads} threads total)
-        </div>
-      )}
-    </div>
+    </BoardLayout>
   );
 } 
