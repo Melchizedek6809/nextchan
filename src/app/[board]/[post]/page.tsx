@@ -4,13 +4,7 @@ import Link from "next/link"
 import React from "react"
 import { Post } from "@/components/Post"
 import { PostForm } from "@/components/PostForm"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbSeparator 
-} from "@/components/ui/breadcrumb"
-import { HomeIcon } from "lucide-react"
+import { BoardLayout } from "@/components/BoardLayout"
 import type { Post as PostType, Board } from "@/lib/types"
 
 type Props = {
@@ -132,48 +126,28 @@ export default async function PostPage(props: Props) {
 
   // Generate a short preview for each post in the thread hierarchy
   function getShortPreview(message: string): string {
-    return message.length > 20 ? message.substring(0, 20) + '...' : message;
+    // Make previews shorter to prevent breadcrumb wrapping issues
+    return message.length > 10 ? message.substring(0, 10) + '...' : message;
   }
+  
+  // Create breadcrumb items for BoardLayout
+  const breadcrumbItems = [
+    ...(threadHierarchy.map(threadPost => ({
+      label: `#${threadPost.id}`,
+      href: `/${board.id}/${threadPost.id}`
+    }))),
+    {
+      label: `#${post.id}`,
+      isCurrent: true
+    }
+  ];
 
   return (
-    <div className="container mx-auto max-w-[1200px] py-6 px-4 sm:px-6">
-      <div className="mb-6">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">
-              <HomeIcon className="size-3.5 mr-1" />
-              Home
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/${board.id}`}>
-              /{board.id}/ - {board.name}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          
-          {/* Show thread hierarchy in breadcrumbs */}
-          {threadHierarchy.map((threadPost, index) => (
-            <React.Fragment key={threadPost.id}>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/${board.id}/${threadPost.id}`}>
-                  Thread #{threadPost.id} - {getShortPreview(threadPost.message)}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </React.Fragment>
-          ))}
-          
-          {/* Current post/thread */}
-          <BreadcrumbSeparator />
-          <BreadcrumbItem isCurrent>
-            <BreadcrumbLink isCurrent>
-              Thread #{post.id} - {postPreview}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-        </Breadcrumb>
-      </div>
-
+    <BoardLayout
+      board={board}
+      currentView="thread"
+      breadcrumbItems={breadcrumbItems}
+    >
       <Post post={postWithReplies} boardId={board.id} isMainPost inThread showAllReplies={postId === replyToId} />
 
       <div className="mt-8">
@@ -197,6 +171,6 @@ export default async function PostPage(props: Props) {
         )}
         <PostForm boardId={board.id} parentId={post.id} />
       </div>
-    </div>
+    </BoardLayout>
   )
 } 

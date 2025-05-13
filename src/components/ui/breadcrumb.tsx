@@ -49,7 +49,9 @@ export function BreadcrumbItem({
 // Breadcrumb separator
 export function BreadcrumbSeparator() {
   return (
-    <ChevronRight className="size-3 text-muted-foreground/50" />
+    <li className="flex items-center">
+      <ChevronRight className="size-3 text-muted-foreground/50 mx-1" />
+    </li>
   )
 }
 
@@ -74,7 +76,7 @@ export function BreadcrumbLink({
 
   if (!href || isCurrent) {
     return (
-      <span className={classes} {...props}>
+      <span className={cn(classes, "inline-flex items-center")} {...props}>
         {children}
       </span>
     )
