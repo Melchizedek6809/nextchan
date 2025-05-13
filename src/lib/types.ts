@@ -13,18 +13,34 @@ export interface FileMetadata {
 }
 
 /**
- * Post interface representing a post or reply in the application
+ * Base Post interface representing a post in the application
  */
-export interface Post {
+export interface BasePost {
   id: number
   board_id: string
   parent_id: number | null
   message: string
   creation_time: string
   update_time: string
+}
+
+/**
+ * Extended Post interface with optional fields for UI rendering
+ */
+export interface Post extends BasePost {
   replies?: Post[]
   reply_count?: number
   files?: FileMetadata[]
+}
+
+/**
+ * Thread interface representing a post with required reply_count
+ * Used for thread listings and catalog views
+ */
+export interface Thread extends BasePost {
+  reply_count: number
+  files?: FileMetadata[]
+  replies?: Thread[]
 }
 
 /**

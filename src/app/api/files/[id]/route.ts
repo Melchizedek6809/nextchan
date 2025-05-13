@@ -2,11 +2,12 @@ import { getFile } from "@/lib/db"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const fileId = parseInt(params.id)
+    const p = await params;
+    const fileId = parseInt(p.id);
     if (isNaN(fileId)) {
       return NextResponse.json({ error: "Invalid file ID" }, { status: 400 })
     }

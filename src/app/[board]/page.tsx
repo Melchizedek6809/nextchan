@@ -24,7 +24,7 @@ const POSTS_PER_PAGE = 3;
 export default async function BoardPage(props: Props) {
   // Use object destructuring in the function body instead of parameters
   const params = await props.params;
-  const searchParams = props.searchParams || {};
+  const searchParams = (await props.searchParams) || {};
   
   const boardId = params.board;
   
