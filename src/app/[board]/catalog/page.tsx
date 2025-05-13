@@ -120,31 +120,32 @@ export default async function CatalogPage(props: Props) {
       ]}
     >
       {/* Header with stats */}
-      <div className="mb-8 bg-card border rounded-lg p-4 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+      <div className="mb-8 bg-card border rounded-lg p-4 shadow-sm overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-500/5 to-transparent"></div>
+        <div className="flex flex-col md:flex-row justify-between gap-4 relative">
           <div>
-            <h2 className="text-2xl font-bold mb-2">/{board.id}/ - {board.name} - Catalog</h2>
+            <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">/{board.id}/ - {board.name} - Catalog</h2>
             <p className="text-muted-foreground text-sm">
               Viewing all threads in a grid layout. 
-              <Link href={`/${board.id}`} className="ml-1 text-primary hover:underline">
+              <Link href={`/${board.id}`} className="ml-1 text-primary hover:text-blue-500 transition-colors">
                 Switch to thread view
               </Link>
             </p>
           </div>
           
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg border-l-2 border-primary/40">
               <div className="flex items-center gap-1 text-sm">
                 <MessageSquare className="size-4 text-primary" />
-                <span><strong>{totalThreads}</strong> threads</span>
+                <span><strong className="text-primary">{totalThreads}</strong> threads</span>
               </div>
               <div className="flex items-center gap-1 text-sm">
                 <FileText className="size-4 text-blue-500" />
-                <span><strong>{totalPosts - totalThreads}</strong> replies</span>
+                <span><strong className="text-blue-500">{totalPosts - totalThreads}</strong> replies</span>
               </div>
               <div className="flex items-center gap-1 text-sm">
-                <ImageIcon className="size-4 text-green-500" />
-                <span><strong>{totalFiles}</strong> files</span>
+                <ImageIcon className="size-4 text-emerald-500" />
+                <span><strong className="text-emerald-500">{totalFiles}</strong> files</span>
               </div>
             </div>
           </div>
@@ -152,14 +153,16 @@ export default async function CatalogPage(props: Props) {
       </div>
 
       {threadsWithFiles.length === 0 ? (
-        <div className="text-center py-16 bg-card/50 rounded-lg border border-dashed">
+        <div className="text-center py-16 bg-gradient-to-b from-card/80 to-card rounded-lg border border-dashed">
           <div className="flex flex-col items-center">
-            <ImageIcon className="size-10 text-muted-foreground/40 mb-3" />
-            <h3 className="text-lg font-medium mb-1">No Threads Yet</h3>
+            <div className="p-4 rounded-full bg-muted/50 mb-3">
+              <ImageIcon className="size-10 text-muted-foreground/40" />
+            </div>
+            <h3 className="text-lg font-medium mb-1 text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">No Threads Yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto mb-4">
               This board doesn't have any threads yet. Visit the thread view to create a new thread.
             </p>
-            <Button asChild>
+            <Button asChild className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90">
               <Link href={`/${board.id}`}>
                 Go to thread view
               </Link>
@@ -174,7 +177,12 @@ export default async function CatalogPage(props: Props) {
               key={thread.id}
               className="group relative"
             >
-              <div className="bg-card border rounded-lg overflow-hidden transition-all hover:shadow-md hover:border-primary/40 flex flex-col h-full">
+              <div className="bg-card border rounded-lg overflow-hidden transition-all hover:shadow-md hover:border-primary/40 flex flex-col h-full relative">
+                {thread.files && thread.files.length > 0 && (
+                  <div className="absolute top-0 right-0 w-20 h-20 opacity-20 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-primary/20 to-transparent transform rotate-45"></div>
+                  </div>
+                )}
                 <div className="relative h-48 w-full bg-muted/50 overflow-hidden">
                   {thread.files && thread.files.length > 0 ? (
                     <>
@@ -196,14 +204,14 @@ export default async function CatalogPage(props: Props) {
                   
                   {/* Thread stats badges */}
                   <div className="absolute top-2 left-2 flex items-center gap-1">
-                    <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">
-                      <MessageSquare className="size-3 text-white" />
+                    <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs border border-white/10">
+                      <MessageSquare className="size-3 text-primary" />
                       {thread.reply_count}
                     </div>
                     
                     {thread.files && thread.files.length > 0 && (
-                      <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">
-                        <ImageIcon className="size-3 text-white" />
+                      <div className="bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-xs border border-white/10">
+                        <ImageIcon className="size-3 text-blue-400" />
                         {thread.files.length}
                       </div>
                     )}
@@ -211,7 +219,7 @@ export default async function CatalogPage(props: Props) {
                   
                   {/* View button that appears on hover */}
                   <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                    <div className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-sm">
                       <Eye className="size-3" />
                       View thread
                     </div>
@@ -231,7 +239,7 @@ export default async function CatalogPage(props: Props) {
                   
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="size-3" />
+                      <Clock className="size-3 text-amber-500" />
                       <time dateTime={thread.creation_time}>
                         {new Date(thread.creation_time).toLocaleTimeString(undefined, {
                           hour: '2-digit',
@@ -240,7 +248,7 @@ export default async function CatalogPage(props: Props) {
                       </time>
                     </div>
                     
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">
                       {thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}
                     </span>
                   </div>

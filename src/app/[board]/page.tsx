@@ -89,45 +89,46 @@ export default async function BoardPage(props: Props) {
       pageNumber={currentPage > 1 ? currentPage : undefined}
     >
       {/* Board stats section */}
-      <div className="mb-8 bg-card border rounded-lg p-4 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+      <div className="mb-8 bg-card border rounded-lg p-4 shadow-sm overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-primary/5 to-transparent"></div>
+        <div className="flex flex-col md:flex-row justify-between gap-4 relative">
           <div>
-            <h2 className="text-2xl font-bold mb-2">/{board.id}/ - {board.name}</h2>
+            <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">/{board.id}/ - {board.name}</h2>
             <p className="text-muted-foreground text-sm">
               Welcome to the {board.name.toLowerCase()} board. Please follow the rules and be respectful to others.
             </p>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 mb-1">
+            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md border-t-2 border-primary/50">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/15 mb-1">
                 <MessageSquare className="h-4 w-4 text-primary" />
               </div>
-              <div className="text-lg font-bold">{totalPosts}</div>
+              <div className="text-lg font-bold text-primary">{totalPosts}</div>
               <div className="text-xs text-muted-foreground">Total Posts</div>
             </div>
             
-            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/10 mb-1">
+            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md border-t-2 border-blue-400/50">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/15 mb-1">
                 <FileText className="h-4 w-4 text-blue-500" />
               </div>
-              <div className="text-lg font-bold">{totalFiles}</div>
+              <div className="text-lg font-bold text-blue-500">{totalFiles}</div>
               <div className="text-xs text-muted-foreground">Files</div>
             </div>
             
-            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/10 mb-1">
+            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md border-t-2 border-amber-400/50">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/15 mb-1">
                 <Clock className="h-4 w-4 text-amber-500" />
               </div>
-              <div className="text-lg font-bold">{postsToday}</div>
+              <div className="text-lg font-bold text-amber-500">{postsToday}</div>
               <div className="text-xs text-muted-foreground">Posts Today</div>
             </div>
             
-            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 mb-1">
-                <Users className="h-4 w-4 text-green-500" />
+            <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-md border-t-2 border-emerald-400/50">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/15 mb-1">
+                <Users className="h-4 w-4 text-emerald-500" />
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-sm font-medium text-emerald-500">
                 {latestPost ? new Date(latestPost.creation_time).toLocaleString(undefined, {
                   hour: '2-digit',
                   minute: '2-digit'
@@ -143,9 +144,10 @@ export default async function BoardPage(props: Props) {
       <div className="mb-8">
         <h3 className="text-lg font-medium mb-3 flex items-center">
           <MessageSquare className="size-4 mr-2 text-primary" />
-          Create a new thread
+          <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">Create a new thread</span>
         </h3>
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-blue-400/50 to-primary/50"></div>
           <PostForm boardId={board.id} />
         </div>
       </div>
@@ -153,9 +155,11 @@ export default async function BoardPage(props: Props) {
       {/* Thread list with header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-lg font-medium">Threads</h3>
-          <div className="h-px flex-1 bg-border"></div>
-          <span className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-medium flex items-center">
+            <span className="bg-gradient-to-br from-blue-500 to-primary bg-clip-text text-transparent">Threads</span>
+          </h3>
+          <div className="h-0.5 flex-1 bg-gradient-to-r from-primary/50 via-blue-400/30 to-transparent rounded-full"></div>
+          <span className="text-sm text-muted-foreground px-2 py-0.5 rounded-full bg-muted">
             {pagination.totalItems} {pagination.totalItems === 1 ? 'thread' : 'threads'}
           </span>
         </div>

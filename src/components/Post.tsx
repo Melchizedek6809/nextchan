@@ -33,11 +33,20 @@ export function Post({
       style={{ paddingLeft: isMainPost ? 0 : paddingLeft }} 
       id={`post-${post.id}`}
     >
-      <div className={`bg-card p-4 rounded-lg border ${isMainPost ? 'border-primary/40 shadow-sm' : 'hover:border-primary/25 transition-all duration-200'}`}>
+      <div className={`bg-card p-4 rounded-lg border 
+        ${isMainPost 
+          ? 'border-primary/40 shadow-md relative overflow-hidden' 
+          : 'hover:border-primary/25 transition-all duration-200'}`
+        }
+      >
+        {isMainPost && (
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
+        )}
+        
         {/* Post header with metadata */}
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start mb-3 relative">
           <div className="flex items-center gap-2 text-sm">
-            <div className="bg-primary/10 px-2 py-0.5 rounded-full">
+            <div className={`px-2 py-0.5 rounded-full ${isMainPost ? 'bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary' : 'bg-primary/10'}`}>
               <Link 
                 href={inThread ? `#post-${post.id}` : `/${boardId}/${post.id}`}
                 className="font-medium hover:text-primary transition-colors"
@@ -47,12 +56,12 @@ export function Post({
             </div>
             
             <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="size-3" />
+              <Clock className={`size-3 ${isMainPost ? 'text-blue-500' : ''}`} />
               <time dateTime={post.creation_time}>
                 {new Date(post.creation_time).toLocaleString()}
               </time>
               {post.creation_time !== post.update_time && 
-                <span className="ml-1 text-xs rounded-full bg-muted px-1.5 py-0.5">(edited)</span>
+                <span className="ml-1 text-xs rounded-full bg-amber-500/10 text-amber-500 px-1.5 py-0.5">(edited)</span>
               }
             </div>
           </div>
@@ -72,7 +81,7 @@ export function Post({
               <>
                 <Link
                   href={`#post-${post.id}`}
-                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 transition-colors"
+                  className="text-xs text-muted-foreground hover:text-blue-500 flex items-center gap-0.5 transition-colors"
                   title="Link to this post"
                 >
                   <Link2 className="size-3" />
@@ -80,7 +89,7 @@ export function Post({
                 </Link>
                 <Link
                   href={`/${boardId}/${post.parent_id || post.id}?reply=${post.id}`}
-                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 transition-colors"
+                  className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 transition-colors"
                 >
                   <Reply className="size-3" />
                   <span>Reply</span>
@@ -100,7 +109,7 @@ export function Post({
         )}
         
         {/* Post content with styling */}
-        <div className="whitespace-pre-wrap break-words prose prose-sm dark:prose-invert max-w-none">
+        <div className="whitespace-pre-wrap break-words prose prose-sm dark:prose-invert max-w-none relative">
           {post.message}
         </div>
       </div>
@@ -108,7 +117,7 @@ export function Post({
       {/* Show nested replies in threads */}
       {inThread && post.replies && post.replies.length > 0 && (
         <div className="mt-3 relative">
-          <div className="absolute left-0 w-0.5 h-full bg-border rounded"></div>
+          <div className="absolute left-0 w-0.5 h-full bg-gradient-to-b from-primary/50 via-blue-500/30 to-primary/10 rounded"></div>
           
           {showAllReplies ? (
             // Show all replies
@@ -127,7 +136,7 @@ export function Post({
             // Show only the 3 most recent replies
             <div className="pl-4">
               {post.replies.length > 3 && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3 py-1 px-2 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3 py-1 px-2 bg-gradient-to-r from-muted/50 to-muted/30 rounded-md">
                   <MessageSquare className="size-3 text-primary" />
                   <Link 
                     href={`/${boardId}/${post.id}`} 
@@ -154,9 +163,9 @@ export function Post({
       {/* Show latest replies on board page */}
       {!inThread && showReplies && post.replies && post.replies.length > 0 && (
         <div className="mt-2 pl-5 border-l-2 border-muted relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-muted/50"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary/40 via-blue-500/20 to-primary/5"></div>
           
-          <div className="flex items-center gap-1 text-xs mb-3 py-1 px-2 bg-muted/30 rounded-md w-fit">
+          <div className="flex items-center gap-1 text-xs mb-3 py-1 px-2 bg-gradient-to-r from-muted/40 to-muted/20 rounded-md w-fit">
             <MessageCircle className="size-3.5 text-primary" />
             <span className="text-muted-foreground">
               {replyCount > post.replies.length 
@@ -167,9 +176,14 @@ export function Post({
           
           <div className="space-y-3">
             {post.replies.map(reply => (
-              <div key={reply.id} className="bg-card/50 p-3 rounded-md border border-muted/50 hover:border-muted/80 transition-colors">
+              <div key={reply.id} className="bg-card/50 p-3 rounded-md border border-muted/50 hover:border-muted/80 transition-colors relative overflow-hidden">
+                {reply.files && reply.files.length > 0 && (
+                  <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none opacity-10">
+                    <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-primary/20 to-transparent transform rotate-45"></div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <div className="bg-primary/5 px-1.5 py-0.5 rounded-full">
+                  <div className="bg-gradient-to-r from-primary/10 to-blue-500/10 px-1.5 py-0.5 rounded-full">
                     <Link 
                       href={`/${boardId}/${reply.id}`}
                       className="font-medium hover:text-primary transition-colors"
@@ -225,9 +239,9 @@ export function Post({
           <div className="mt-3">
             <Link 
               href={`/${boardId}/${post.id}`} 
-              className="text-xs bg-muted/30 hover:bg-muted/50 transition-colors px-3 py-1.5 rounded-md inline-flex items-center gap-1"
+              className="text-xs bg-gradient-to-r from-primary/15 to-blue-500/15 hover:from-primary/25 hover:to-blue-500/25 transition-all px-3 py-1.5 rounded-md inline-flex items-center gap-1"
             >
-              <Eye className="size-3.5" />
+              <Eye className="size-3.5 text-primary" />
               {replyCount > post.replies.length && `View all ${replyCount} replies`}
               {replyCount <= post.replies.length && `View thread`}
             </Link>
@@ -238,7 +252,7 @@ export function Post({
   )
 }
 
-// File attachment component
+// File attachment component with improved styling
 interface FileAttachmentProps {
   file: FileMetadata
   boardId: string
@@ -254,9 +268,9 @@ function FileAttachment({ file, boardId }: FileAttachmentProps) {
       target="_blank"
       className="group"
     >
-      <div className="bg-muted/30 border rounded-lg overflow-hidden hover:bg-muted/50 hover:shadow-sm hover:border-primary/30 transition-all duration-200">
+      <div className="bg-muted/30 border rounded-lg overflow-hidden hover:bg-muted/50 hover:shadow-sm hover:border-primary/30 transition-all duration-200 relative">
         {isImage ? (
-          <div className="w-36 h-36 relative">
+          <div className="w-36 h-36 relative overflow-hidden">
             <Image
               src={`/api/files/${file.id}`}
               alt={file.name}
@@ -265,8 +279,8 @@ function FileAttachment({ file, boardId }: FileAttachmentProps) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               unoptimized={true}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-2">
-              <div className="text-xs text-white font-medium">View full size</div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-2">
+              <div className="text-xs text-white font-medium bg-primary/80 backdrop-blur-sm px-2 py-1 rounded-full">View full size</div>
             </div>
           </div>
         ) : (
@@ -275,7 +289,7 @@ function FileAttachment({ file, boardId }: FileAttachmentProps) {
             <div className="text-xs text-center break-all">
               {file.name}
             </div>
-            <div className="text-xs uppercase font-mono mt-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+            <div className="text-xs uppercase font-mono mt-2 px-2 py-0.5 bg-gradient-to-r from-primary/15 to-blue-500/15 text-primary rounded-full">
               {file.extension}
             </div>
           </div>
