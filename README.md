@@ -5,7 +5,7 @@
 
 A beautiful, modern imageboard built with Next.js, TypeScript, and SQLite. Features a responsive design with elegant UI components and dynamic features.
 
-![NextChan Screenshot](https://via.placeholder.com/800x450.png?text=NextChan+Screenshot)
+![NextChan Screenshot](screenshot.webp)
 
 ## ✨ Features
 
